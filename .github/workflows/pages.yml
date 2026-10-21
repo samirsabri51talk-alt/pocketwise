@@ -1,0 +1,54 @@
+name: Publish Pocketwise
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify public Supabase configuration
+        env:
+          POCKETWISE_SUPABASE_URL: ${{ vars.POCKETWISE_SUPABASE_URL }}
+          POCKETWISE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.POCKETWISE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          test -n "$POCKETWISE_SUPABASE_URL"
+          test -n "$POCKETWISE_SUPABASE_PUBLISHABLE_KEY"
+      - run: npm ci
+      - run: npm run check
+      - name: Build website
+        env:
+          POCKETWISE_OUT_DIR: ./dist
+          POCKETWISE_SUPABASE_URL: ${{ vars.POCKETWISE_SUPABASE_URL }}
+          POCKETWISE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.POCKETWISE_SUPABASE_PUBLISHABLE_KEY }}
+        run: npm run build
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

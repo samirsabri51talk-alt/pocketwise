@@ -1,0 +1,10 @@
+node_modules/
+dist/
+test-storage.mjs
+ledger-test-bundle.mjs
+sync-test-bundle.mjs
+*.local.json
+*.backup.json
+*.xlsx
+*.zip
+.env*
