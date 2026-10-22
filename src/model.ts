@@ -1,6 +1,6 @@
 import { z } from 'zod';
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v=>!isNaN(Date.parse(v))&&new Date(v+'T12:00:00Z').toISOString().slice(0,10)===v);
-export const entrySchema = z.object({id:z.string().min(1).max(80),name:z.string().trim().min(1).max(100),kind:z.enum(['income','expense','saving']),category:z.string().max(60),amount:z.number().positive().max(1e9).refine(n=>Math.abs(n*100-Math.round(n*100))<0.0001),date,status:z.enum(['planned','done']),essential:z.boolean(),note:z.string().max(400),direction:z.enum(['deposit','withdrawal']).optional()});
+export const entrySchema = z.object({id:z.string().min(1).max(80),name:z.string().trim().min(1).max(100),kind:z.enum(['income','expense','saving']),category:z.string().max(60),amount:z.number().positive().max(1e9).refine(n=>Math.abs(n*100-Math.round(n*100))<0.0001),date,status:z.enum(['planned','done']),essential:z.boolean(),note:z.string().max(400),direction:z.enum(['deposit','withdrawal']).optional(),budgetMonth:z.string().regex(/^\d{4}-\d{2}$/).optional()});
 export const adjustmentSchema=z.object({id:z.string().min(1).max(80),account:z.enum(['cash','savings']),date,amount:z.number().min(-1e9).max(1e9).refine(n=>Math.abs(n*100-Math.round(n*100))<0.0001),note:z.string().trim().min(1).max(400)});
 export const budgetSchema = z.object({entries:z.array(entrySchema).max(5000),opening:z.number().min(-1e9).max(1e9),openingSavings:z.number().min(0).max(1e9).default(0),adjustments:z.array(adjustmentSchema).max(1000).default([]),openingDate:date,target:z.number().positive().max(1e9),caps:z.record(z.number().min(0).max(1e9))}).superRefine((b,ctx)=>{
  if(new Set(b.entries.map(e=>e.id)).size!==b.entries.length)ctx.addIssue({code:z.ZodIssueCode.custom,message:'Duplicate transaction identifiers'});
@@ -15,6 +15,10 @@ export type Budget=z.infer<typeof budgetSchema>;
 export const categories=['Housing','Household','Utilities','Transport','Installments','Family','Dining & coffee','Shopping','Subscriptions','Other'];
 export const money=(n:number)=>new Intl.NumberFormat('en-GB',{maximumFractionDigits:2}).format(n);
 export const monthOf=(d:string)=>d.slice(0,7);
+// Private income is received on the 9th of the next month, but planned against
+// the month it is intended to fund. The fallback keeps older saved plans correct.
+export const planningMonth=(e:Entry)=>e.budgetMonth||(e.kind==='income'&&e.category==='Private'&&e.status==='planned'?monthOf(new Date(Date.UTC(+e.date.slice(0,4),+e.date.slice(5,7)-2,1)).toISOString().slice(0,10)):monthOf(e.date));
+export const budgetDate=(e:Entry,month:string)=>e.kind==='income'&&e.category==='Private'&&e.status==='planned'&&planningMonth(e)===month?month+'-09':e.date;
 export const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 export const lastDay=(m:string)=>new Date(Date.UTC(+m.slice(0,4),+m.slice(5,7),0)).toISOString().slice(0,10);
 export function totals(entries:Entry[]) {
@@ -37,8 +41,8 @@ export function forecast(b:Budget,month:string,commissionDelay=0,flexibleCut=0) 
  const prior=totals(b.entries.filter(e=>e.status==='done'&&e.date>=b.openingDate&&e.date<start));
  const priorAdjustments=b.adjustments.filter(e=>e.account==='cash'&&e.date<start).reduce((s,e)=>s+e.amount,0);
  const opening=b.openingDate<=lastDay(month)?round(b.opening+prior.received-prior.paid-prior.saved+priorAdjustments):0;
- const adjusted=b.entries.filter(e=>monthOf(e.date)===month&&e.date>=b.openingDate).map(e=>{
-  let d=e.date;
+ const adjusted=b.entries.filter(e=>planningMonth(e)===month&&(e.status==='planned'||e.date>=b.openingDate)).map(e=>{
+  let d=budgetDate(e,month);
   if(e.kind==='income'&&e.category==='Commission'&&e.status==='planned') {const v=new Date(d+'T12:00:00Z');v.setUTCDate(v.getUTCDate()+commissionDelay);d=v.toISOString().slice(0,10);}
   const amount=e.kind==='expense'&&!e.essential&&e.status==='planned'?Math.round(e.amount*(1-flexibleCut/100)*100)/100:e.amount;
   return {...e,date:d,amount};
@@ -54,7 +58,7 @@ export function forecast(b:Budget,month:string,commissionDelay=0,flexibleCut=0) 
  return {opening,closing:cash,min,firstShortfall,series};
 }
 export function suggestions(b:Budget,month:string) {
- const e=b.entries.filter(x=>monthOf(x.date)===month),t=totals(e),out:{title:string;detail:string;tone:string}[]=[];
+ const e=b.entries.filter(x=>planningMonth(x)===month),t=totals(e),out:{title:string;detail:string;tone:string}[]=[];
  const flexible=e.filter(x=>x.kind==='expense'&&!x.essential), flex=flexible.reduce((s,x)=>s+x.amount,0);
  const remaining=t.income-t.expenses-t.savings;
  if(remaining<0) out.push({title:'Your plan needs a rebalance',detail:`Planned outflows exceed known income by EGP ${money(-remaining)}. Add missing income first, then reduce flexible spending. Avoid committing savings you cannot fund.`,tone:'warning'});
