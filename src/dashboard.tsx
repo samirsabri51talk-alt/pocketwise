@@ -412,7 +412,12 @@ export default function Dashboard({
     ),
     a = totals(actual),
     cash = cashBalance(b),
-    totalSavings = savingsBalance(b);
+    totalSavings = savingsBalance(b),
+    cashCorrections = round(
+      b.adjustments
+        .filter((x) => x.account === "cash" && x.date <= today())
+        .reduce((sum, x) => sum + x.amount, 0),
+    );
   const reserved = round(
     sum(
       b.entries.filter(
@@ -749,6 +754,22 @@ export default function Dashboard({
                     <span className="lightpill">Actual cash</span>
                     <span>As of {dateLabel(today())}</span>
                   </div>
+                  <p
+                    style={{
+                      fontSize: 9,
+                      lineHeight: 1.6,
+                      marginTop: 10,
+                      color: "#bfccb7",
+                    }}
+                  >
+                    Started with EGP {money(b.opening)} + received EGP{" "}
+                    {money(a.received)} − paid EGP {money(a.paid)} − moved to
+                    savings EGP {money(a.saved)}
+                    {cashCorrections
+                      ? ` ${cashCorrections > 0 ? "+" : "−"} correction EGP ${money(Math.abs(cashCorrections))}`
+                      : ""}
+                    .
+                  </p>
                 </article>
                 <article className="stat">
                   <div className="statlabel">
