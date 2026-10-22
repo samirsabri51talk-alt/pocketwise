@@ -125,7 +125,7 @@ export default function Dashboard({
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [view, setView] = useState("Monthly plan"),
-    [month, setMonth] = useState(monthOf(today())),
+    [month, setMonth] = useState(() => monthAhead(monthOf(today()), 1)),
     [filter, setFilter] = useState("all"),
     [query, setQuery] = useState(""),
     [editing, setEditing] = useState<Entry | null>(null),
