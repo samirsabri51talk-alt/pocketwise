@@ -28,9 +28,13 @@ assert.equal(forecast(budget,day.slice(0,7)).closing,350,'Forecast includes plan
 budget.adjustments.splice(0,1);
 assert.equal(cashBalance(budget),1075,'Deleting a correction restores the ledger balance');
 const privatePlan={id:'private-plan',name:'Private income',kind:'income',category:'Private',amount:2400,date:'2026-11-09',status:'planned',essential:true,note:'Monthly income plan'};
-const privateBudget=budgetSchema.parse({entries:[privatePlan],opening:0,openingSavings:0,adjustments:[],openingDate:'2026-10-01',target:5000,caps:{}});
+const novemberCommission={id:'november-commission',name:'Commission',kind:'income',category:'Commission',amount:7500,date:'2026-10-20',status:'planned',essential:true,note:'Monthly income plan',budgetMonth:'2026-11'};
+const novemberSalary={id:'november-salary',name:'Salary',kind:'income',category:'Salary',amount:16000,date:'2026-10-31',status:'planned',essential:true,note:'Monthly income plan',budgetMonth:'2026-11'};
+const privateBudget=budgetSchema.parse({entries:[privatePlan,novemberCommission,novemberSalary],opening:0,openingSavings:0,adjustments:[],openingDate:'2026-10-01',target:5000,caps:{}});
 assert.equal(planningMonth(privatePlan),'2026-11','Private income belongs to its payment month');
-assert.equal(forecast(privateBudget,'2026-11').closing,2400,'Private income is included in the selected monthly plan');
-assert.equal(forecast(privateBudget,'2026-10').closing,0,'Private income is excluded from the previous month');
+assert.equal(planningMonth(novemberCommission),'2026-11','October commission funds November');
+assert.equal(planningMonth(novemberSalary),'2026-11','October salary funds November');
+assert.equal(forecast(privateBudget,'2026-11').closing,25900,'All income for November is included in the selected monthly plan');
+assert.equal(forecast(privateBudget,'2026-10').closing,0,'November income is excluded from the previous month');
 assert.ok(budgetSchema.safeParse(budget).success);
 console.log('PASS: old backups, completed and planned entries, transfers both ways, manual corrections, forecast, correction removal, monthly private income planning.');

@@ -15,10 +15,10 @@ export type Budget=z.infer<typeof budgetSchema>;
 export const categories=['Housing','Household','Utilities','Transport','Installments','Family','Dining & coffee','Shopping','Subscriptions','Other'];
 export const money=(n:number)=>new Intl.NumberFormat('en-GB',{maximumFractionDigits:2}).format(n);
 export const monthOf=(d:string)=>d.slice(0,7);
-// Every plan is organized by the calendar month of its real transaction date.
-// budgetMonth remains optional for compatibility with older saved plans.
-export const planningMonth=(e:Entry)=>monthOf(e.date);
-export const budgetDate=(e:Entry,_month:string)=>e.date;
+// Income can be received before its budget month (salary and commission) while
+// expenses, savings, and private income remain in their calendar month.
+export const planningMonth=(e:Entry)=>e.budgetMonth||monthOf(e.date);
+export const budgetDate=(e:Entry,month:string)=>e.kind==='income'&&planningMonth(e)===month&&monthOf(e.date)!==month?month+'-01':e.date;
 export const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 export const lastDay=(m:string)=>new Date(Date.UTC(+m.slice(0,4),+m.slice(5,7),0)).toISOString().slice(0,10);
 export function totals(entries:Entry[]) {
