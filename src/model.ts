@@ -22,6 +22,9 @@ export const entrySchema = z.object({
   essential: z.boolean(),
   note: z.string().max(400),
   direction: z.enum(["deposit", "withdrawal"]).optional(),
+  fundingSource: z
+    .enum(["Salary", "Commission", "Private income", "Extra / unexpected", "Other"])
+    .optional(),
   budgetMonth: z
     .string()
     .regex(/^\d{4}-\d{2}$/)

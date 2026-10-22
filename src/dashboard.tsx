@@ -314,6 +314,7 @@ export default function Dashboard({
       essential: true,
       note: "",
       direction: "deposit",
+      fundingSource: kind === "saving" ? "Salary" : undefined,
       budgetMonth: month,
     });
   }
@@ -1724,6 +1725,11 @@ ${insights.map((x) => x.title + ": " + x.detail).join("\n")}`,
                       {e.kind === "saving" && e.direction === "withdrawal"
                         ? " · To cash"
                         : ""}
+                      {e.kind === "saving" &&
+                      e.direction !== "withdrawal" &&
+                      e.fundingSource
+                        ? " · From " + e.fundingSource
+                        : ""}
                     </small>
                   </div>
                 </div>
@@ -2359,6 +2365,10 @@ function EntryDialog({
             ...e,
             budgetMonth: selectedMonth,
             date: e.status === "done" ? today() : selectedMonth + "-01",
+            fundingSource:
+              e.kind === "saving" && e.direction !== "withdrawal"
+                ? e.fundingSource || "Salary"
+                : undefined,
           };
           const parsed = entrySchema.safeParse(saved);
           if (!parsed.success) {
@@ -2395,16 +2405,33 @@ function EntryDialog({
           ))}
         </div>
         {e.kind === "saving" && (
-          <label>
-            Transfer direction
-            <select
-              value={e.direction || "deposit"}
-              onChange={(ev) => change("direction", ev.target.value)}
-            >
-              <option value="deposit">Move cash into savings</option>
-              <option value="withdrawal">Move savings back to cash</option>
-            </select>
-          </label>
+          <>
+            <label>
+              Transfer direction
+              <select
+                value={e.direction || "deposit"}
+                onChange={(ev) => change("direction", ev.target.value)}
+              >
+                <option value="deposit">Move cash into savings</option>
+                <option value="withdrawal">Move savings back to cash</option>
+              </select>
+            </label>
+            {(e.direction || "deposit") === "deposit" && (
+              <label>
+                Savings funded by
+                <select
+                  value={e.fundingSource || "Salary"}
+                  onChange={(ev) => change("fundingSource", ev.target.value)}
+                >
+                  <option>Salary</option>
+                  <option>Commission</option>
+                  <option>Private income</option>
+                  <option>Extra / unexpected</option>
+                  <option>Other</option>
+                </select>
+              </label>
+            )}
+          </>
         )}
         <label>
           Name
