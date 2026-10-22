@@ -11,7 +11,7 @@ export const entrySchema = z.object({
   id: z.string().min(1).max(80),
   name: z.string().trim().min(1).max(100),
   kind: z.enum(["income", "expense", "saving"]),
-  category: z.string().max(60),
+  category: z.string().trim().min(1).max(60),
   amount: z
     .number()
     .positive()

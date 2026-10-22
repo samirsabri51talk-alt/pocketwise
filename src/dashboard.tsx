@@ -2459,11 +2459,16 @@ function EntryDialog({
         </label>
         <div className="formrow">
           <label>
-            Category
-            <select
+            Category <span className="muted">choose or type your own</span>
+            <input
+              list="entry-category-options"
+              required
+              maxLength={60}
               value={e.category}
               onChange={(ev) => change("category", ev.target.value)}
-            >
+              placeholder="Choose or type a category"
+            />
+            <datalist id="entry-category-options">
               {(e.kind === "income"
                 ? ["Salary", "Commission", "Private", "Other income"]
                 : e.kind === "saving"
@@ -2472,7 +2477,7 @@ function EntryDialog({
               ).map((c) => (
                 <option key={c}>{c}</option>
               ))}
-            </select>
+            </datalist>
           </label>
           <label>
             Status
