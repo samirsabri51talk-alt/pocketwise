@@ -431,7 +431,8 @@ export default function Dashboard({
     ),
   );
   const safe = Math.max(0, round(cash - reserved)),
-    savedTotal = totalSavings;
+    savedTotal = totalSavings,
+    savingsAfterYear = round(totalSavings + t.savings * 12);
   const flexible = sum(
     entries.filter((e) => e.kind === "expense" && !e.essential),
   );
@@ -1110,6 +1111,11 @@ export default function Dashboard({
                   <p className="goalcopy">
                     Transfers to savings reduce cash. Withdrawals return money
                     to cash.
+                  </p>
+                  <p className="goalcopy" style={{ paddingTop: 0 }}>
+                    Keep this month&apos;s net savings transfer of EGP{" "}
+                    {money(t.savings)} for 12 months and your estimated savings
+                    balance will be EGP {money(savingsAfterYear)}.
                   </p>
                   <button
                     className="secondary full"
